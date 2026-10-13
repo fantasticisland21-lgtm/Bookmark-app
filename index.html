@@ -53,7 +53,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.11</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.12</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -71,6 +71,7 @@
       <p id="msg" class="msg"></p>
     </div>
 
+    <p id="count" class="date" style="margin: 0 0 10px 4px;"></p>
     <div class="tabs" id="tabs"></div>
     <div id="list"></div>
   </section>
@@ -161,7 +162,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.11）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.12）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -293,6 +294,10 @@ function makeBadge(service) {
 function renderList() {
   const list = document.getElementById("list");
   list.innerHTML = "";
+  const activeCount = allItems.filter(i => i.isArchived !== true).length;
+  const archivedCount = allItems.length - activeCount;
+  document.getElementById("count").textContent =
+    `保存件数：${activeCount}件（アーカイブ ${archivedCount}件）`;
   const showArchive = currentService === "archive";
   const items = allItems.filter(i => showArchive
     ? i.isArchived === true
