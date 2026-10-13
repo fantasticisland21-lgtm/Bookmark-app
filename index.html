@@ -53,7 +53,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.10</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.11</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -118,6 +118,16 @@ function normalizeUrl(raw) {
   try { u = new URL(raw.trim()); } catch { return null; }
   if (u.protocol !== "https:" && u.protocol !== "http:") return null;
   u.hash = "";
+  // 投稿を特定しない「共有用のおまけ」だけを取り除く（投稿を見分けるパラメータは残す）
+  const host = u.hostname.replace(/^www\./, "");
+  let drop = [];
+  if (host === "x.com" || host === "twitter.com") drop = ["s", "t"];
+  else if (host === "instagram.com") drop = ["igsh", "igshid"];
+  else if (host === "youtube.com" || host === "youtu.be") drop = ["si", "feature", "pp"];
+  else if (host === "note.com") drop = ["sub_rt"];
+  for (const k of [...u.searchParams.keys()]) {
+    if (k.startsWith("utm_") || drop.includes(k)) u.searchParams.delete(k);
+  }
   return u.toString().replace(/\/$/, "");
 }
 
@@ -151,7 +161,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.10）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.11）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
