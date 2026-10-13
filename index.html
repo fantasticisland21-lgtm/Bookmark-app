@@ -37,7 +37,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.3</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.4</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -65,7 +65,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, onSnapshot,
-         serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+         serverTimestamp, limit, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ===== Firebaseの設定（前にコピーした値） =====
 const firebaseConfig = {
@@ -126,7 +126,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.3）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.4）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -258,6 +258,22 @@ function renderList() {
 
     a.append(s, u, d);
     card.appendChild(a);
+
+    const rename = document.createElement("button");
+    rename.className = "secondary";
+    rename.textContent = "名前を付ける";
+    rename.onclick = async () => {
+      const name = prompt("この投稿の名前を入力してください", item.title || "");
+      if (name === null) return;
+      try {
+        await updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id),
+                        { title: name.trim() });
+      } catch (e) {
+        console.error(e);
+        alert("名前を保存できませんでした。");
+      }
+    };
+    card.appendChild(rename);
     list.appendChild(card);
   });
 }
