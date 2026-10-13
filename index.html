@@ -61,7 +61,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, onSnapshot,
          serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -119,8 +119,13 @@ function formatDate(ts) {
 }
 
 // ===== ログイン =====
-document.getElementById("loginBtn").onclick = () => {
-  signInWithRedirect(auth, new GoogleAuthProvider());
+document.getElementById("loginBtn").onclick = async () => {
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (e) {
+    console.error(e);
+    alert("ログインできませんでした。もう一度お試しください。");
+  }
 };
 document.getElementById("authBtn").onclick = () => {
   if (currentUser) signOut(auth);
