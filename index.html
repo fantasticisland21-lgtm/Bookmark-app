@@ -37,7 +37,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.5</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.6</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -120,7 +120,8 @@ function formatDate(ts) {
 }
 
 // ===== 共有メニュー（ショートカット）から渡されたURLを受け取る =====
-const sharedParam = new URLSearchParams(location.search).get("add");
+const shareMatch = location.search.match(/[?&]add=(.*)$/);
+const sharedParam = shareMatch ? shareMatch[1] : null;
 if (sharedParam) {
   sessionStorage.setItem("pendingAdd", sharedParam);
   history.replaceState(null, "", location.pathname);
@@ -133,7 +134,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.5）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.6）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
