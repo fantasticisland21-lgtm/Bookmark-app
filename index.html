@@ -37,7 +37,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク</h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.2</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -45,6 +45,7 @@
   <section id="loggedOut" class="box">
     <p>Googleアカウントでログインすると、保存したリンクが見られます。</p>
     <button id="loginBtn">Googleでログイン</button>
+    <p id="loginMsg" class="msg ng"></p>
   </section>
 
   <section id="loggedIn" style="display:none">
@@ -124,7 +125,8 @@ document.getElementById("loginBtn").onclick = async () => {
     await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (e) {
     console.error(e);
-    alert("ログインできませんでした。もう一度お試しください。");
+    document.getElementById("loginMsg").textContent =
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.2）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
