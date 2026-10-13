@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ブックマーク">
+<title>ブックマーク</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "Hiragino Sans", sans-serif;
+    background: #f2f2f7; color: #1c1c1e;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  header { background: #fff; padding: 14px 16px; position: sticky; top: 0; z-index: 10;
+           border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+  h1 { font-size: 20px; margin: 0; }
+  button { font-size: 17px; padding: 12px 16px; border: none; border-radius: 12px;
+           background: #007aff; color: #fff; min-height: 44px; }
+  button.secondary { background: #e5e5ea; color: #1c1c1e; }
+  main { padding: 16px; max-width: 720px; margin: 0 auto; }
+  .box { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  input[type=url] { width: 100%; font-size: 17px; padding: 12px; border: 1px solid #ccc;
+                    border-radius: 12px; margin-bottom: 10px; }
+  .tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; }
+  .tabs button { background: #fff; color: #007aff; white-space: nowrap; }
+  .tabs button.active { background: #007aff; color: #fff; }
+  .card { background: #fff; border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  .card a { color: inherit; text-decoration: none; display: block; }
+  .service { font-size: 13px; font-weight: bold; color: #007aff; }
+  .url { font-size: 15px; word-break: break-all; margin: 6px 0; }
+  .date { font-size: 13px; color: #8e8e93; }
+  .msg { font-size: 15px; min-height: 22px; margin: 8px 0 0; }
+  .ok { color: #248a3d; } .ng { color: #d70015; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ブックマーク</h1>
+  <button id="authBtn" class="secondary">ログイン</button>
+</header>
+
+<main>
+  <section id="loggedOut" class="box">
+    <p>Googleアカウントでログインすると、保存したリンクが見られます。</p>
+    <button id="loginBtn">Googleでログイン</button>
+  </section>
+
+  <section id="loggedIn" style="display:none">
+    <div class="box">
+      <input id="urlInput" type="url" placeholder="InstagramやXなどのURLを貼り付け">
+      <button id="saveBtn">保存する</button>
+      <p id="msg" class="msg"></p>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="list"></div>
+  </section>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, onSnapshot,
+         serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ===== Firebaseの設定（前にコピーした値） =====
+const firebaseConfig = {
+  apiKey: "AIzaSyDWrc9WMz2GbzrSMPB_dvvnDHhYZaU5ghg",
+  authDomain: "bookmark-1bf19.firebaseapp.com",
+  projectId: "bookmark-1bf19",
+  storageBucket: "bookmark-1bf19.firebasestorage.app",
+  messagingSenderId: "230106425490",
+  appId: "1:230106425490:web:6c8dd150329eded6709e4b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const SERVICES = [
+  { key: "all", label: "すべて" },
+  { key: "instagram", label: "Instagram" },
+  { key: "x", label: "X" },
+  { key: "youtube", label: "YouTube" },
+  { key: "note", label: "note" },
+  { key: "other", label: "その他" }
+];
+const SERVICE_LABEL = Object.fromEntries(SERVICES.map(s => [s.key, s.label]));
+let currentService = "all";
+let currentUser = null;
+let unsubscribe = null;
+let allItems = [];
+
+// ===== URLの整理と分類 =====
+function normalizeUrl(raw) {
+  let u;
+  try { u = new URL(raw.trim()); } catch { return null; }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  u.hash = "";
+  return u.toString().replace(/\/$/, "");
+}
+
+function detectService(url) {
+  const host = new URL(url).hostname.replace(/^www\./, "");
+  if (host === "instagram.com") return "instagram";
+  if (host === "x.com" || host === "twitter.com") return "x";
+  if (host === "youtube.com" || host === "youtu.be") return "youtube";
+  if (host === "note.com") return "note";
+  return "other";
+}
+
+function formatDate(ts) {
+  if (!ts) return "保存中…";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleString("ja-JP", { dateStyle: "medium", timeStyle: "short" });
+}
+
+// ===== ログイン =====
+document.getElementById("loginBtn").onclick = () => {
+  signInWithRedirect(auth, new GoogleAuthProvider());
+};
+document.getElementById("authBtn").onclick = () => {
+  if (currentUser) signOut(auth);
+};
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  document.getElementById("loggedOut").style.display = user ? "none" : "block";
+  document.getElementById("loggedIn").style.display = user ? "block" : "none";
+  document.getElementById("authBtn").textContent = user ? "ログアウト" : "ログイン";
+  if (user) startListening(); else stopListening();
+});
+
+// ===== 保存 =====
+document.getElementById("saveBtn").onclick = saveUrl;
+
+async function saveUrl() {
+  const msg = document.getElementById("msg");
+  const btn = document.getElementById("saveBtn");
+  const url = normalizeUrl(document.getElementById("urlInput").value);
+  if (!url) {
+    msg.className = "msg ng";
+    msg.textContent = "URLの形式が正しくありません。https://から始まるURLを貼ってください。";
+    return;
+  }
+  btn.disabled = true;
+  msg.className = "msg";
+  msg.textContent = "保存中…";
+  try {
+    const bookmarks = collection(db, "users", currentUser.uid, "bookmarks");
+    // 重複確認（アーカイブ済みも含む）
+    const dup = await getDocs(query(bookmarks, where("normalizedUrl", "==", url), limit(1)));
+    if (!dup.empty) {
+      msg.className = "msg ng";
+      msg.textContent = "このURLはすでに保存されています。";
+    } else {
+      await addDoc(bookmarks, {
+        url: url,
+        normalizedUrl: url,
+        service: detectService(url),
+        title: "",
+        accountName: "",
+        excerpt: "",
+        thumbnailUrl: "",
+        savedAt: serverTimestamp(),
+        isArchived: false,
+        metadataStatus: "pending"
+      });
+      msg.className = "msg ok";
+      msg.textContent = "保存しました。";
+      document.getElementById("urlInput").value = "";
+    }
+  } catch (e) {
+    console.error(e);
+    msg.className = "msg ng";
+    msg.textContent = "保存できませんでした。通信状態を確認して、もう一度お試しください。";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ===== 一覧（リアルタイム同期） =====
+function startListening() {
+  stopListening();
+  const q = query(collection(db, "users", currentUser.uid, "bookmarks"),
+                  where("isArchived", "==", false), orderBy("savedAt", "desc"));
+  unsubscribe = onSnapshot(q, snap => {
+    allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderTabs();
+    renderList();
+  }, err => {
+    console.error(err);
+    document.getElementById("list").textContent = "一覧を読み込めませんでした。";
+  });
+}
+
+function stopListening() {
+  if (unsubscribe) unsubscribe();
+  unsubscribe = null;
+  allItems = [];
+  document.getElementById("list").innerHTML = "";
+}
+
+function renderTabs() {
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = "";
+  SERVICES.forEach(s => {
+    const b = document.createElement("button");
+    b.textContent = s.label;
+    b.className = s.key === currentService ? "active" : "";
+    b.onclick = () => { currentService = s.key; renderTabs(); renderList(); };
+    tabs.appendChild(b);
+  });
+}
+
+function renderList() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+  const items = allItems.filter(i => currentService === "all" || i.service === currentService);
+  if (items.length === 0) {
+    const p = document.createElement("p");
+    p.textContent = "まだ保存されていません。";
+    list.appendChild(p);
+    return;
+  }
+  items.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const a = document.createElement("a");
+    a.href = item.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+
+    const s = document.createElement("div");
+    s.className = "service";
+    s.textContent = SERVICE_LABEL[item.service] || "その他";
+
+    const u = document.createElement("div");
+    u.className = "url";
+    u.textContent = item.title || item.url;
+
+    const d = document.createElement("div");
+    d.className = "date";
+    d.textContent = "保存日：" + formatDate(item.savedAt);
+
+    a.append(s, u, d);
+    card.appendChild(a);
+    list.appendChild(card);
+  });
+}
+</script>
+</body>
+</html>
