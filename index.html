@@ -53,7 +53,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.9</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.10</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -151,7 +151,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.9）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.10）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -330,7 +330,8 @@ function renderList() {
 
     const rename = document.createElement("button");
     rename.className = "secondary";
-    rename.textContent = "名前を付ける";
+    rename.textContent = "✏️";
+    rename.title = "名前を付ける";
     rename.onclick = async () => {
       const name = prompt("この投稿の名前を入力してください", item.title || "");
       if (name === null) return;
@@ -356,7 +357,8 @@ function renderList() {
     if (!item.isArchived) {
       const arc = document.createElement("button");
       arc.className = "secondary";
-      arc.textContent = "アーカイブする";
+      arc.textContent = "📦";
+      arc.title = "アーカイブする";
       arc.onclick = () => setArchive(true);
       card.appendChild(arc);
     } else {
