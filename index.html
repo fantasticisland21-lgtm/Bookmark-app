@@ -37,7 +37,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.2</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.3</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -126,7 +126,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.2）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.3）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -193,9 +193,11 @@ async function saveUrl() {
 function startListening() {
   stopListening();
   const q = query(collection(db, "users", currentUser.uid, "bookmarks"),
-                  where("isArchived", "==", false), orderBy("savedAt", "desc"));
+                  where("isArchived", "==", false));
   unsubscribe = onSnapshot(q, snap => {
-    allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const millis = x => (x.savedAt && x.savedAt.toMillis) ? x.savedAt.toMillis() : Date.now();
+    allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                        .sort((a, b) => millis(b) - millis(a));
     renderTabs();
     renderList();
   }, err => {
