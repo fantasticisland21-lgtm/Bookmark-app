@@ -34,11 +34,20 @@
   .msg { font-size: 15px; min-height: 22px; margin: 8px 0 0; }
   .ok { color: #248a3d; } .ng { color: #d70015; }
   .card button { margin: 8px 8px 0 0; font-size: 15px; min-height: 40px; }
+  .thumb, .badge { display: flex; width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
+                   border-radius: 12px; margin-bottom: 8px; background: #e5e5ea; }
+  .badge { align-items: center; justify-content: center; color: #fff;
+           font-size: 22px; font-weight: bold; }
+  .badge-instagram { background: linear-gradient(45deg, #f58529, #dd2a7b, #8134af); }
+  .badge-x { background: #000; }
+  .badge-youtube { background: #ff0000; }
+  .badge-note { background: #41c9b4; }
+  .badge-other { background: #8e8e93; }
 </style>
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.7</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.8</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -136,7 +145,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.7）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.8）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -244,6 +253,27 @@ function renderTabs() {
   });
 }
 
+function getYoutubeId(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return u.pathname.slice(1) || null;
+    if (host === "youtube.com") {
+      if (u.searchParams.get("v")) return u.searchParams.get("v");
+      const m = u.pathname.match(/^\/(shorts|embed)\/([^/]+)/);
+      if (m) return m[2];
+    }
+  } catch {}
+  return null;
+}
+
+function makeBadge(service) {
+  const b = document.createElement("div");
+  b.className = "badge badge-" + (service || "other");
+  b.textContent = SERVICE_LABEL[service] || "その他";
+  return b;
+}
+
 function renderList() {
   const list = document.getElementById("list");
   list.innerHTML = "";
@@ -278,7 +308,18 @@ function renderList() {
     d.className = "date";
     d.textContent = "保存日：" + formatDate(item.savedAt);
 
-    a.append(s, u, d);
+    const ytId = getYoutubeId(item.url);
+    let thumb;
+    if (ytId) {
+      thumb = document.createElement("img");
+      thumb.className = "thumb";
+      thumb.alt = "";
+      thumb.src = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+      thumb.onerror = () => thumb.replaceWith(makeBadge(item.service));
+    } else {
+      thumb = makeBadge(item.service);
+    }
+    a.append(thumb, s, u, d);
     card.appendChild(a);
 
     const rename = document.createElement("button");
