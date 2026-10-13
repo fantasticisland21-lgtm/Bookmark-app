@@ -43,11 +43,17 @@
   .badge-youtube { background: #ff0000; }
   .badge-note { background: #41c9b4; }
   .badge-other { background: #8e8e93; }
+  #list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  #list .card { margin-bottom: 0; }
+  #list p { grid-column: 1 / -1; }
+  @media (min-width: 768px) {
+    #list { grid-template-columns: 1fr 1fr 1fr; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.8</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.9</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -145,7 +151,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.8）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.9）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
