@@ -53,7 +53,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.12</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.13</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -148,11 +148,32 @@ function formatDate(ts) {
 }
 
 // ===== 共有メニュー（ショートカット）から渡されたURLを受け取る =====
+// ?t=ページの名前&add=URL の形で受け取る（t は無くてもよい）
 const shareMatch = location.search.match(/[?&]add=(.*)$/);
 const sharedParam = shareMatch ? shareMatch[1] : null;
 if (sharedParam) {
   sessionStorage.setItem("pendingAdd", sharedParam);
+  const before = location.search.slice(0, shareMatch.index + 1);
+  const tMatch = before.match(/[?&]t=([^&]*)/);
+  const t = tMatch ? cleanTitle(tMatch[1]) : "";
+  if (t) sessionStorage.setItem("pendingTitle", t);
+  else sessionStorage.removeItem("pendingTitle");
   history.replaceState(null, "", location.pathname);
+}
+
+// ショートカットが取ってきたページの名前を整える
+function cleanTitle(raw) {
+  let t = raw || "";
+  try { t = decodeURIComponent(t.replace(/\+/g, "%20")); } catch (e) {}
+  // &amp; などの記号を元の文字に戻す
+  const ta = document.createElement("textarea");
+  ta.innerHTML = t;
+  t = ta.value.replace(/\s+/g, " ").trim();
+  // 末尾の「 - YouTube」「｜note」などを外す
+  t = t.replace(/\s*[-|｜]\s*(YouTube|note)\s*$/i, "").trim();
+  // サービス名だけ・ログイン画面などは名前として使わない
+  if (/^(x|twitter|instagram|youtube|note|login|ログイン.*|.*Instagram.*ログイン.*)$/i.test(t)) return "";
+  return t.slice(0, 100);
 }
 
 // ===== ログイン =====
@@ -162,7 +183,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.12）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.13）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -179,8 +200,10 @@ onAuthStateChanged(auth, user => {
     const pending = sessionStorage.getItem("pendingAdd");
     if (pending) {
       sessionStorage.removeItem("pendingAdd");
+      const pendingTitle = sessionStorage.getItem("pendingTitle") || "";
+      sessionStorage.removeItem("pendingTitle");
       document.getElementById("urlInput").value = pending;
-      saveUrl();
+      saveUrl(pendingTitle);
     }
   } else {
     stopListening();
@@ -188,9 +211,9 @@ onAuthStateChanged(auth, user => {
 });
 
 // ===== 保存 =====
-document.getElementById("saveBtn").onclick = saveUrl;
+document.getElementById("saveBtn").onclick = () => saveUrl("");
 
-async function saveUrl() {
+async function saveUrl(autoTitle) {
   const msg = document.getElementById("msg");
   const btn = document.getElementById("saveBtn");
   const url = normalizeUrl(document.getElementById("urlInput").value);
@@ -214,7 +237,7 @@ async function saveUrl() {
         url: url,
         normalizedUrl: url,
         service: detectService(url),
-        title: "",
+        title: autoTitle || "",
         accountName: "",
         excerpt: "",
         thumbnailUrl: "",
