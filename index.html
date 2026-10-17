@@ -59,11 +59,29 @@
   .addRow { display: flex; gap: 8px; align-items: stretch; }
   .addRow input[type=url] { flex: 1 1 auto; min-width: 0; width: auto; margin: 0; }
   .addRow button { flex: 0 0 auto; white-space: nowrap; }
+  /* タグ */
+  .tagBar { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 14px; }
+  .tagBar:empty { display: none; }
+  .chip { font-size: 14px; padding: 6px 12px; min-height: 34px; border-radius: 17px;
+          background: #fff; color: #3a3a3c; border: 1px solid #d1d1d6; }
+  .chip.active { background: #3a3a3c; color: #fff; border-color: #3a3a3c; }
+  .cardTags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .tagLabel { font-size: 12px; padding: 2px 8px; border-radius: 8px;
+              background: #e5e5ea; color: #3a3a3c; }
+  .sheetBg { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 50;
+             display: flex; align-items: flex-end; justify-content: center; }
+  .sheet { background: #fff; width: 100%; max-width: 520px; border-radius: 16px 16px 0 0;
+           padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; overflow-y: auto; }
+  .sheet h2 { font-size: 17px; margin: 0 0 12px; }
+  .sheet .tagBar { margin: 0 0 12px; }
+  .sheet .addRow input { font-size: 17px; padding: 10px 12px; border: 1px solid #ccc; border-radius: 12px; flex: 1 1 auto; min-width: 0; }
+  .sheetBtns { display: flex; gap: 8px; margin-top: 14px; }
+  .sheetBtns button { flex: 1; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.20</span></h1>
+  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.21</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -85,6 +103,7 @@
 
     <p id="count" class="date" style="margin: 0 0 10px 4px;"></p>
     <div class="tabs" id="tabs"></div>
+    <div class="tagBar" id="tagBar"></div>
     <div id="list"></div>
   </section>
 </main>
@@ -121,6 +140,7 @@ const SERVICES = [
 ];
 const SERVICE_LABEL = Object.fromEntries(SERVICES.map(s => [s.key, s.label]));
 let currentService = "all";
+let currentTag = "";
 let currentUser = null;
 let unsubscribe = null;
 let allItems = [];
@@ -195,7 +215,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.20）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.21）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -280,6 +300,7 @@ function startListening() {
     allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
                         .sort((a, b) => millis(b) - millis(a));
     renderTabs();
+    renderTagBar();
     renderList();
     fillYoutubeTitles();
     fillPageImages();
@@ -414,6 +435,104 @@ function renderTabs() {
   });
 }
 
+// ===== タグ =====
+function allTags() {
+  const set = new Set();
+  allItems.forEach(i => (i.tags || []).forEach(t => set.add(t)));
+  return [...set].sort((a, b) => a.localeCompare(b, "ja"));
+}
+
+function renderTagBar() {
+  const bar = document.getElementById("tagBar");
+  bar.innerHTML = "";
+  const tags = allTags();
+  if (currentTag && !tags.includes(currentTag)) currentTag = "";
+  if (tags.length === 0) return;
+  ["", ...tags].forEach(t => {
+    const b = document.createElement("button");
+    b.className = "chip" + (t === currentTag ? " active" : "");
+    b.textContent = t ? "#" + t : "タグ：すべて";
+    b.onclick = () => { currentTag = t; renderTagBar(); renderList(); };
+    bar.appendChild(b);
+  });
+}
+
+function openTagSheet(item) {
+  const selected = new Set(item.tags || []);
+  const bg = document.createElement("div");
+  bg.className = "sheetBg";
+  const sheet = document.createElement("div");
+  sheet.className = "sheet";
+  const h = document.createElement("h2");
+  h.textContent = "タグを付ける";
+  const chips = document.createElement("div");
+  chips.className = "tagBar";
+  const drawChips = () => {
+    chips.innerHTML = "";
+    const tags = [...new Set([...allTags(), ...selected])].sort((a, b) => a.localeCompare(b, "ja"));
+    if (tags.length === 0) {
+      const p = document.createElement("span");
+      p.className = "date";
+      p.textContent = "まだタグがありません。下で新しく作ってください。";
+      chips.appendChild(p);
+    }
+    tags.forEach(t => {
+      const b = document.createElement("button");
+      b.className = "chip" + (selected.has(t) ? " active" : "");
+      b.textContent = (selected.has(t) ? "✓ " : "") + t;
+      b.onclick = () => { selected.has(t) ? selected.delete(t) : selected.add(t); drawChips(); };
+      chips.appendChild(b);
+    });
+  };
+  drawChips();
+
+  const row = document.createElement("div");
+  row.className = "addRow";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "新しいタグ（例：料理）";
+  const addBtn = document.createElement("button");
+  addBtn.className = "secondary";
+  addBtn.textContent = "追加";
+  const addTag = () => {
+    const t = input.value.replace(/^#/, "").replace(/\s+/g, " ").trim().slice(0, 20);
+    if (!t) return;
+    selected.add(t);
+    input.value = "";
+    drawChips();
+  };
+  addBtn.onclick = addTag;
+  input.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); addTag(); } };
+  row.append(input, addBtn);
+
+  const btns = document.createElement("div");
+  btns.className = "sheetBtns";
+  const cancel = document.createElement("button");
+  cancel.className = "secondary";
+  cancel.textContent = "キャンセル";
+  cancel.onclick = () => bg.remove();
+  const save = document.createElement("button");
+  save.textContent = "保存";
+  save.style.background = "#3a3a3c";
+  save.onclick = async () => {
+    if (input.value.trim()) addTag();
+    try {
+      await updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id),
+                      { tags: [...selected].sort((a, b) => a.localeCompare(b, "ja")) });
+      bg.remove();
+    } catch (e) {
+      console.error(e);
+      alert("タグを保存できませんでした。");
+    }
+  };
+  btns.append(cancel, save);
+
+  sheet.append(h, chips, row, btns);
+  bg.appendChild(sheet);
+  bg.onclick = e => { if (e.target === bg) bg.remove(); };
+  document.body.appendChild(bg);
+}
+
 function getYoutubeId(url) {
   try {
     const u = new URL(url);
@@ -445,10 +564,11 @@ function renderList() {
   const showArchive = currentService === "archive";
   const items = allItems.filter(i => showArchive
     ? i.isArchived === true
-    : (i.isArchived !== true && (currentService === "all" || i.service === currentService)));
+    : (i.isArchived !== true && (currentService === "all" || i.service === currentService)))
+    .filter(i => !currentTag || (i.tags || []).includes(currentTag));
   if (items.length === 0) {
     const p = document.createElement("p");
-    p.textContent = "まだ保存されていません。";
+    p.textContent = currentTag ? "このタグのブックマークはありません。" : "まだ保存されていません。";
     list.appendChild(p);
     return;
   }
@@ -490,6 +610,18 @@ function renderList() {
     a.append(thumb, s, u, d);
     card.appendChild(a);
 
+    if (item.tags && item.tags.length) {
+      const tg = document.createElement("div");
+      tg.className = "cardTags";
+      item.tags.forEach(t => {
+        const l = document.createElement("span");
+        l.className = "tagLabel";
+        l.textContent = "#" + t;
+        tg.appendChild(l);
+      });
+      card.appendChild(tg);
+    }
+
     const rename = document.createElement("button");
     rename.className = "secondary";
     rename.textContent = "✏️";
@@ -506,6 +638,13 @@ function renderList() {
       }
     };
     card.appendChild(rename);
+
+    const tagBtn = document.createElement("button");
+    tagBtn.className = "secondary";
+    tagBtn.textContent = "🏷️";
+    tagBtn.title = "タグを付ける";
+    tagBtn.onclick = () => openTagSheet(item);
+    card.appendChild(tagBtn);
 
     const setArchive = async (flag) => {
       try {
