@@ -42,7 +42,7 @@
   /* カードの操作ボタンを1行に並べる */
   .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .actions button { margin: 0; flex: 1 1 0; min-width: 0; padding: 8px 0; }
-  .actions button.textBtn { flex: 1 1 40%; padding: 8px 4px; white-space: nowrap; }
+  .actions button.textBtn { flex: 1 1 0; padding: 8px 2px; font-size: 14px; white-space: nowrap; }
   .thumb, .badge { display: flex; width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
                    border-radius: 12px; margin-bottom: 8px; background: #e5e5ea; }
   .badge { align-items: center; justify-content: center; color: #fff;
@@ -85,7 +85,7 @@
 </head>
 <body>
 <header>
-  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.23</span></h1>
+  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.24</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -220,7 +220,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.23）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.24）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -690,9 +690,14 @@ function renderList() {
       };
       back.classList.add("textBtn");
       del.className = "textBtn";
-      actions.append(back, del);
+      // アーカイブは文字のボタンが長いので、2行目に分ける
+      const actions2 = document.createElement("div");
+      actions2.className = "actions";
+      actions2.append(back, del);
+      card.appendChild(actions);
+      card.appendChild(actions2);
     }
-    card.appendChild(actions);
+    if (!card.contains(actions)) card.appendChild(actions);
     list.appendChild(card);
   });
 }
