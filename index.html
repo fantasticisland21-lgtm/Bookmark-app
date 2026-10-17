@@ -63,7 +63,7 @@
 </head>
 <body>
 <header>
-  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.19</span></h1>
+  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.20</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -195,7 +195,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.19）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.20）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -282,6 +282,7 @@ function startListening() {
     renderTabs();
     renderList();
     fillYoutubeTitles();
+    fillPageImages();
   }, err => {
     console.error(err);
     document.getElementById("list").textContent = "一覧を読み込めませんでした。";
@@ -366,6 +367,34 @@ async function fillYoutubeTitles() {
   }
 }
 
+// ===== noteとその他のサイトの画像(と名前)を Microlink で取る =====
+// 登録なしで1日25回まで。1件につき1回だけ取りに行く
+const imageTried = new Set();
+async function fillPageImages() {
+  const targets = allItems.filter(i => (i.service === "note" || i.service === "other")
+    && !i.thumbnailUrl && !i.imageStatus && !imageTried.has(i.id));
+  for (const item of targets) {
+    imageTried.add(item.id);
+    let data = null;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      const res = await fetch("https://api.microlink.io/?url=" + encodeURIComponent(item.url), { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (res.status === 429) return; // 今日の回数を使い切った → 明日また
+      if (res.ok) data = (await res.json()).data;
+    } catch (e) { console.warn(e); continue; } // 通信の失敗は、次に開いたときにもう一度
+    const update = {};
+    const img = data && data.image && data.image.url;
+    if (img && /^https:\/\//.test(img)) { update.thumbnailUrl = img; update.imageStatus = "done"; }
+    else update.imageStatus = "failed";
+    if (!item.title && data && data.title) update.title = String(data.title).slice(0, 100);
+    try {
+      await updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id), update);
+    } catch (e) { console.warn(e); }
+  }
+}
+
 function stopListening() {
   if (unsubscribe) unsubscribe();
   unsubscribe = null;
@@ -445,12 +474,15 @@ function renderList() {
     d.textContent = "保存日：" + formatDate(item.savedAt);
 
     const ytId = getYoutubeId(item.url);
+    const imgSrc = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+      : (item.service !== "instagram" && item.service !== "x" && item.thumbnailUrl) || "";
     let thumb;
-    if (ytId) {
+    if (imgSrc) {
       thumb = document.createElement("img");
       thumb.className = "thumb";
       thumb.alt = "";
-      thumb.src = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+      thumb.referrerPolicy = "no-referrer";
+      thumb.src = imgSrc;
       thumb.onerror = () => thumb.replaceWith(makeBadge(item.service));
     } else {
       thumb = makeBadge(item.service);
