@@ -81,7 +81,7 @@
 </head>
 <body>
 <header>
-  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.21</span></h1>
+  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.22</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -141,6 +141,7 @@ const SERVICES = [
 const SERVICE_LABEL = Object.fromEntries(SERVICES.map(s => [s.key, s.label]));
 let currentService = "all";
 let currentTag = "";
+const NO_TAG = "__none__"; // 「タグなし」で絞り込むときの印
 let currentUser = null;
 let unsubscribe = null;
 let allItems = [];
@@ -215,7 +216,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.21）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.22）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -446,12 +447,12 @@ function renderTagBar() {
   const bar = document.getElementById("tagBar");
   bar.innerHTML = "";
   const tags = allTags();
-  if (currentTag && !tags.includes(currentTag)) currentTag = "";
+  if (currentTag && currentTag !== NO_TAG && !tags.includes(currentTag)) currentTag = "";
   if (tags.length === 0) return;
-  ["", ...tags].forEach(t => {
+  ["", ...tags, NO_TAG].forEach(t => {
     const b = document.createElement("button");
     b.className = "chip" + (t === currentTag ? " active" : "");
-    b.textContent = t ? "#" + t : "タグ：すべて";
+    b.textContent = t === NO_TAG ? "タグなし" : (t ? "#" + t : "タグ：すべて");
     b.onclick = () => { currentTag = t; renderTagBar(); renderList(); };
     bar.appendChild(b);
   });
@@ -565,10 +566,12 @@ function renderList() {
   const items = allItems.filter(i => showArchive
     ? i.isArchived === true
     : (i.isArchived !== true && (currentService === "all" || i.service === currentService)))
-    .filter(i => !currentTag || (i.tags || []).includes(currentTag));
+    .filter(i => !currentTag
+      || (currentTag === NO_TAG ? !(i.tags && i.tags.length) : (i.tags || []).includes(currentTag)));
   if (items.length === 0) {
     const p = document.createElement("p");
-    p.textContent = currentTag ? "このタグのブックマークはありません。" : "まだ保存されていません。";
+    p.textContent = currentTag === NO_TAG ? "タグなしのブックマークはありません。"
+      : currentTag ? "このタグのブックマークはありません。" : "まだ保存されていません。";
     list.appendChild(p);
     return;
   }
