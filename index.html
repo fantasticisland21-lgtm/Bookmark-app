@@ -54,11 +54,16 @@
   @media (min-width: 768px) {
     #list { grid-template-columns: 1fr 1fr 1fr; }
   }
+  /* 貼り付け欄と保存ボタンを横並び */
+  .msg:empty { display: none; }
+  .addRow { display: flex; gap: 8px; align-items: stretch; }
+  .addRow input[type=url] { flex: 1 1 auto; min-width: 0; width: auto; margin: 0; }
+  .addRow button { flex: 0 0 auto; white-space: nowrap; }
 </style>
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.18</span></h1>
+  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.19</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -71,8 +76,10 @@
 
   <section id="loggedIn" style="display:none">
     <div class="box">
-      <input id="urlInput" type="url" placeholder="InstagramやXなどのURLを貼り付け">
-      <button id="saveBtn">保存する</button>
+      <div class="addRow">
+        <input id="urlInput" type="url" placeholder="URLを貼り付け">
+        <button id="saveBtn">保存</button>
+      </div>
       <p id="msg" class="msg"></p>
     </div>
 
@@ -188,7 +195,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.18）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.19）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
