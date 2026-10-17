@@ -55,7 +55,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.15</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.16</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -185,7 +185,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.15）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.16）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -240,7 +240,7 @@ async function saveUrl(autoTitle) {
         normalizedUrl: url,
         service: detectService(url),
         // YouTubeはショートカットの名前が当てにならないので、あとで自動取得する
-        title: detectService(url) === "youtube" ? "" : (autoTitle || ""),
+        title: ["youtube", "x"].includes(detectService(url)) ? "" : (autoTitle || ""),
         accountName: "",
         excerpt: "",
         thumbnailUrl: "",
@@ -299,12 +299,56 @@ async function fetchYoutubeTitle(url) {
   }
   return "";
 }
+// ===== Xの投稿の名前(投稿した人と本文の書き出し)を取る =====
+function jsonp(url, ms) {
+  return new Promise(resolve => {
+    const cb = "_cb" + Date.now() + Math.floor(Math.random() * 1000);
+    const sc = document.createElement("script");
+    const done = v => { delete window[cb]; sc.remove(); clearTimeout(timer); resolve(v); };
+    const timer = setTimeout(() => done(null), ms);
+    window[cb] = data => done(data);
+    sc.onerror = () => done(null);
+    sc.src = url + "&callback=" + cb;
+    document.head.appendChild(sc);
+  });
+}
+function titleFromTweet(data) {
+  if (!data) return "";
+  let text = "";
+  try {
+    const d = new DOMParser().parseFromString(data.html || "", "text/html");
+    const p = d.querySelector("blockquote p");
+    text = p ? p.textContent.replace(/\s+/g, " ").replace(/https?:\/\/\S+/g, "").trim() : "";
+  } catch (e) {}
+  const name = data.author_name || "";
+  if (!name && !text) return "";
+  if (text.length > 60) text = text.slice(0, 60) + "…";
+  return (name ? name + ":" : "") + (text || "(画像・動画の投稿)");
+}
+async function fetchXTitle(url) {
+  const tw = url.replace(/^https?:\/\/(www\.|mobile\.)?x\.com\//, "https://twitter.com/");
+  // 1. noembed 経由
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch("https://noembed.com/embed?url=" + encodeURIComponent(tw), { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      const t = titleFromTweet(await res.json());
+      if (t) return t;
+    }
+  } catch (e) { console.warn(e); }
+  // 2. Xの公開の仕組みを直接
+  const data = await jsonp("https://publish.twitter.com/oembed?omit_script=true&url=" + encodeURIComponent(tw), 8000);
+  return titleFromTweet(data);
+}
+
 async function fillYoutubeTitles() {
-  const targets = allItems.filter(i => i.service === "youtube" && !i.title
+  const targets = allItems.filter(i => (i.service === "youtube" || i.service === "x") && !i.title
     && i.metadataStatus !== "failed" && !titleTried.has(i.id));
   for (const item of targets) {
     titleTried.add(item.id);
-    const title = await fetchYoutubeTitle(item.url);
+    const title = item.service === "x" ? await fetchXTitle(item.url) : await fetchYoutubeTitle(item.url);
     try {
       await updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id),
         title ? { title: title, metadataStatus: "done" } : { metadataStatus: "failed" });
