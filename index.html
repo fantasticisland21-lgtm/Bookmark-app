@@ -53,7 +53,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.13</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.14</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -183,7 +183,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.13）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.14）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -237,7 +237,8 @@ async function saveUrl(autoTitle) {
         url: url,
         normalizedUrl: url,
         service: detectService(url),
-        title: autoTitle || "",
+        // YouTubeはショートカットの名前が当てにならないので、あとで自動取得する
+        title: detectService(url) === "youtube" ? "" : (autoTitle || ""),
         accountName: "",
         excerpt: "",
         thumbnailUrl: "",
@@ -268,10 +269,45 @@ function startListening() {
                         .sort((a, b) => millis(b) - millis(a));
     renderTabs();
     renderList();
+    fillYoutubeTitles();
   }, err => {
     console.error(err);
     document.getElementById("list").textContent = "一覧を読み込めませんでした。";
   });
+}
+
+// ===== YouTubeの動画の名前を自動で取る =====
+// 名前が空のYouTubeだけ、1件につき1回だけ取りに行く
+const titleTried = new Set();
+async function fetchYoutubeTitle(url) {
+  const tries = [
+    "https://noembed.com/embed?url=" + encodeURIComponent(url),
+    "https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent(url)
+  ];
+  for (const t of tries) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const res = await fetch(t, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data && data.title) return String(data.title).slice(0, 100);
+    } catch (e) { console.warn(e); }
+  }
+  return "";
+}
+async function fillYoutubeTitles() {
+  const targets = allItems.filter(i => i.service === "youtube" && !i.title
+    && i.metadataStatus !== "failed" && !titleTried.has(i.id));
+  for (const item of targets) {
+    titleTried.add(item.id);
+    const title = await fetchYoutubeTitle(item.url);
+    try {
+      await updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id),
+        title ? { title: title, metadataStatus: "done" } : { metadataStatus: "failed" });
+    } catch (e) { console.warn(e); }
+  }
 }
 
 function stopListening() {
