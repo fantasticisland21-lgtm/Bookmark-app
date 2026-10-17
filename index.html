@@ -85,7 +85,7 @@
 </head>
 <body>
 <header>
-  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.24</span></h1>
+  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.25</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -220,7 +220,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.24）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.25）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -485,7 +485,8 @@ function openTagSheet(item) {
       const b = document.createElement("button");
       b.className = "chip" + (selected.has(t) ? " active" : "");
       b.textContent = (selected.has(t) ? "✓ " : "") + t;
-      b.onclick = () => { selected.has(t) ? selected.delete(t) : selected.add(t); drawChips(); };
+      // 候補のタグを押したら、その場で保存して閉じる
+      b.onclick = () => { selected.has(t) ? selected.delete(t) : selected.add(t); drawChips(); save.onclick(); };
       chips.appendChild(b);
     });
   };
