@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ブックマーク">
-<title>ブックマーク</title>
+<meta name="apple-mobile-web-app-title" content="Bookmark">
+<title>Bookmark</title>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1">
 <link rel="icon" type="image/svg+xml" href="icon.svg?v=1">
 <style>
@@ -55,7 +55,7 @@
 </head>
 <body>
 <header>
-  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.16</span></h1>
+  <h1>ブックマーク <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.17</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -185,7 +185,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.16）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.17）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
