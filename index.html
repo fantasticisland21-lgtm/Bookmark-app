@@ -39,6 +39,10 @@
   .msg { font-size: 15px; min-height: 22px; margin: 8px 0 0; }
   .ok { color: #248a3d; } .ng { color: #d70015; }
   .card button { margin: 8px 8px 0 0; font-size: 15px; min-height: 40px; }
+  /* カードの操作ボタンを1行に並べる */
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .actions button { margin: 0; flex: 1 1 0; min-width: 0; padding: 8px 0; }
+  .actions button.textBtn { flex: 1 1 40%; padding: 8px 4px; white-space: nowrap; }
   .thumb, .badge { display: flex; width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
                    border-radius: 12px; margin-bottom: 8px; background: #e5e5ea; }
   .badge { align-items: center; justify-content: center; color: #fff;
@@ -81,7 +85,7 @@
 </head>
 <body>
 <header>
-  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.22</span></h1>
+  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.23</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -216,7 +220,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.22）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.23）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -640,14 +644,16 @@ function renderList() {
         alert("名前を保存できませんでした。");
       }
     };
-    card.appendChild(rename);
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    actions.appendChild(rename);
 
     const tagBtn = document.createElement("button");
     tagBtn.className = "secondary";
     tagBtn.textContent = "🏷️";
     tagBtn.title = "タグを付ける";
     tagBtn.onclick = () => openTagSheet(item);
-    card.appendChild(tagBtn);
+    actions.appendChild(tagBtn);
 
     const setArchive = async (flag) => {
       try {
@@ -664,7 +670,7 @@ function renderList() {
       arc.textContent = "📦";
       arc.title = "アーカイブする";
       arc.onclick = () => setArchive(true);
-      card.appendChild(arc);
+      actions.appendChild(arc);
     } else {
       const back = document.createElement("button");
       back.className = "secondary";
@@ -682,8 +688,11 @@ function renderList() {
           alert("削除できませんでした。");
         }
       };
-      card.append(back, del);
+      back.classList.add("textBtn");
+      del.className = "textBtn";
+      actions.append(back, del);
     }
+    card.appendChild(actions);
     list.appendChild(card);
   });
 }
