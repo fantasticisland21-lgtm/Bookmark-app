@@ -4,24 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-title" content="Bookmark">
 <title>Bookmark</title>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1">
 <link rel="icon" type="image/svg+xml" href="icon.svg?v=1">
 <style>
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { overflow-x: hidden; }
   body {
     margin: 0; font-family: -apple-system, "Hiragino Sans", sans-serif;
     background: #f2f2f7; color: #1c1c1e;
     padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   }
-  header { background: #fff; padding: 14px 16px; position: sticky; top: 0; z-index: 10;
+  header { background: #fff; padding: 14px max(16px, env(safe-area-inset-right)) 14px max(16px, env(safe-area-inset-left)); position: sticky; top: 0; z-index: 10;
            border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
   h1 { font-size: 20px; margin: 0; }
   button { font-size: 17px; padding: 12px 16px; border: none; border-radius: 12px;
            background: #007aff; color: #fff; min-height: 44px; }
   button.secondary { background: #e5e5ea; color: #1c1c1e; }
-  main { padding: 16px; max-width: 720px; margin: 0 auto; }
+  main { padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); max-width: 720px; margin: 0 auto; }
   .box { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
   input[type=url] { width: 100%; font-size: 17px; padding: 12px; border: 1px solid #ccc;
                     border-radius: 12px; margin-bottom: 10px; }
@@ -38,7 +43,7 @@
   .date { font-size: 13px; color: #8e8e93; }
   .msg { font-size: 15px; min-height: 22px; margin: 8px 0 0; }
   .ok { color: #248a3d; } .ng { color: #d70015; }
-  .card button { margin: 8px 8px 0 0; font-size: 15px; min-height: 40px; }
+  .card button { margin: 8px 8px 0 0; font-size: 15px; min-height: 44px; }
   /* カードの操作ボタンを1行に並べる */
   .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .actions button { margin: 0; flex: 1 1 0; min-width: 0; padding: 8px 0; }
@@ -52,11 +57,11 @@
   .badge-youtube { background: #ff0000; }
   .badge-note { background: #41c9b4; }
   .badge-other { background: #8e8e93; }
-  #list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  #list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   #list .card { margin-bottom: 0; }
   #list p { grid-column: 1 / -1; }
   @media (min-width: 768px) {
-    #list { grid-template-columns: 1fr 1fr 1fr; }
+    #list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   /* 貼り付け欄と保存ボタンを横並び */
   .msg:empty { display: none; }
@@ -67,17 +72,18 @@
   .tagBar { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 14px; }
   .tagBar:empty { display: none; }
   .chip { font-size: 14px; padding: 6px 12px; min-height: 34px; border-radius: 17px;
-          background: #fff; color: #3a3a3c; border: 1px solid #d1d1d6; }
+          background: #fff; color: #3a3a3c; border: 1px solid #d1d1d6; overflow-wrap: anywhere; }
   .chip.active { background: #3a3a3c; color: #fff; border-color: #3a3a3c; }
   .cardTags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
   .tagLabel { font-size: 12px; padding: 2px 8px; border-radius: 8px;
-              background: #e5e5ea; color: #3a3a3c; }
+              background: #e5e5ea; color: #3a3a3c; overflow-wrap: anywhere; }
   .sheetBg { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 50;
              display: flex; align-items: flex-end; justify-content: center; }
   .sheet { background: #fff; width: 100%; max-width: 520px; border-radius: 16px 16px 0 0;
-           padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; overflow-y: auto; }
+           padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; max-height: 80dvh; overflow-y: auto; overscroll-behavior: contain; }
   .sheet h2 { font-size: 17px; margin: 0 0 12px; }
   .sheet .tagBar { margin: 0 0 12px; }
+  .sheet .chip { min-height: 44px; padding: 8px 14px; border-radius: 22px; }
   .sheet .addRow input { font-size: 17px; padding: 10px 12px; border: 1px solid #ccc; border-radius: 12px; flex: 1 1 auto; min-width: 0; }
   .sheetBtns { display: flex; gap: 8px; margin-top: 14px; }
   .sheetBtns button { flex: 1; }
@@ -85,7 +91,7 @@
 </head>
 <body>
 <header>
-  <h1>Bookmark <span style="font-size:13px;color:#8e8e93;font-weight:normal">v0.25</span></h1>
+  <h1>Bookmark <span id="ver" style="font-size:13px;color:#8e8e93;font-weight:normal">v0.26</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -116,7 +122,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, onSnapshot,
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, query, where, orderBy, getDocs, onSnapshot,
          serverTimestamp, limit, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ===== Firebaseの設定（前にコピーした値） =====
@@ -131,7 +137,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+// 端末にもデータを残す（オフラインでも一覧が見られ、送信待ちの変更も消えない）
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
+const VERSION = "v0.26";
 
 const SERVICES = [
   { key: "all", label: "すべて" },
@@ -157,7 +167,7 @@ function normalizeUrl(raw) {
   if (u.protocol !== "https:" && u.protocol !== "http:") return null;
   u.hash = "";
   // 投稿を特定しない「共有用のおまけ」だけを取り除く（投稿を見分けるパラメータは残す）
-  const host = u.hostname.replace(/^www\./, "");
+  const host = u.hostname.replace(/^(www|m|mobile)\./, "");
   let drop = [];
   if (host === "x.com" || host === "twitter.com") drop = ["s", "t"];
   else if (host === "instagram.com") drop = ["igsh", "igshid"];
@@ -170,7 +180,7 @@ function normalizeUrl(raw) {
 }
 
 function detectService(url) {
-  const host = new URL(url).hostname.replace(/^www\./, "");
+  const host = new URL(url).hostname.replace(/^(www|m|mobile)\./, "");
   if (host === "instagram.com") return "instagram";
   if (host === "x.com" || host === "twitter.com") return "x";
   if (host === "youtube.com" || host === "youtu.be") return "youtube";
@@ -187,7 +197,11 @@ function formatDate(ts) {
 // ===== 共有メニュー（ショートカット）から渡されたURLを受け取る =====
 // ?t=ページの名前&add=URL の形で受け取る（t は無くてもよい）
 const shareMatch = location.search.match(/[?&]add=(.*)$/);
-const sharedParam = shareMatch ? shareMatch[1] : null;
+let sharedParam = shareMatch ? shareMatch[1] : null;
+// ショートカットがURLをエンコードして送ってきた場合は元に戻す
+if (sharedParam && /^https?%3A/i.test(sharedParam)) {
+  try { sharedParam = decodeURIComponent(sharedParam); } catch (e) {}
+}
 if (sharedParam) {
   sessionStorage.setItem("pendingAdd", sharedParam);
   const before = location.search.slice(0, shareMatch.index + 1);
@@ -220,7 +234,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } catch (e) {
     console.error(e);
     document.getElementById("loginMsg").textContent =
-      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（v0.25）";
+      "ログインできませんでした。エラー番号：" + (e.code || "不明") + "（" + VERSION + "）";
   }
 };
 document.getElementById("authBtn").onclick = () => {
@@ -263,14 +277,15 @@ async function saveUrl(autoTitle) {
   msg.className = "msg";
   msg.textContent = "保存中…";
   try {
+    await firstLoad; // 一覧を一度読み込んでから重複を確かめる
     const bookmarks = collection(db, "users", currentUser.uid, "bookmarks");
-    // 重複確認（アーカイブ済みも含む）
-    const dup = await getDocs(query(bookmarks, where("normalizedUrl", "==", url), limit(1)));
-    if (!dup.empty) {
+    // 重複確認（アーカイブ済みも含む）。手元の一覧で確かめるのでオフラインでも動く
+    if (allItems.some(i => i.normalizedUrl === url)) {
       msg.className = "msg ng";
       msg.textContent = "このURLはすでに保存されています。";
     } else {
-      await addDoc(bookmarks, {
+      // サーバーの返事は待たない（電波が弱くても固まらない）。失敗したときだけ知らせる
+      addDoc(bookmarks, {
         url: url,
         normalizedUrl: url,
         service: detectService(url),
@@ -282,6 +297,10 @@ async function saveUrl(autoTitle) {
         savedAt: serverTimestamp(),
         isArchived: false,
         metadataStatus: "pending"
+      }).catch(e => {
+        console.error(e);
+        msg.className = "msg ng";
+        msg.textContent = "保存できませんでした。もう一度お試しください。";
       });
       msg.className = "msg ok";
       msg.textContent = "保存しました。";
@@ -297,12 +316,16 @@ async function saveUrl(autoTitle) {
 }
 
 // ===== 一覧（リアルタイム同期） =====
+let firstLoad = Promise.resolve();
 function startListening() {
   stopListening();
+  let loaded;
+  firstLoad = new Promise(r => { loaded = r; });
   const q = collection(db, "users", currentUser.uid, "bookmarks");
   unsubscribe = onSnapshot(q, snap => {
+    loaded();
     const millis = x => (x.savedAt && x.savedAt.toMillis) ? x.savedAt.toMillis() : Date.now();
-    allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    allItems = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))
                         .sort((a, b) => millis(b) - millis(a));
     renderTabs();
     renderTagBar();
@@ -311,7 +334,9 @@ function startListening() {
     fillPageImages();
   }, err => {
     console.error(err);
-    document.getElementById("list").textContent = "一覧を読み込めませんでした。";
+    loaded();
+    document.getElementById("list").textContent =
+      "一覧を読み込めませんでした。アプリを開き直してください。（" + (err.code || "不明") + "）";
   });
 }
 
@@ -341,7 +366,7 @@ function jsonp(url, ms) {
   return new Promise(resolve => {
     const cb = "_cb" + Date.now() + Math.floor(Math.random() * 1000);
     const sc = document.createElement("script");
-    const done = v => { delete window[cb]; sc.remove(); clearTimeout(timer); resolve(v); };
+    const done = v => { window[cb] = () => {}; sc.remove(); clearTimeout(timer); resolve(v); };
     const timer = setTimeout(() => done(null), ms);
     window[cb] = data => done(data);
     sc.onerror = () => done(null);
@@ -381,11 +406,16 @@ async function fetchXTitle(url) {
 }
 
 async function fillYoutubeTitles() {
+  if (!navigator.onLine) return; // オフラインでは取りに行かない（「取れなかった」と記録しない）
   const targets = allItems.filter(i => (i.service === "youtube" || i.service === "x") && !i.title
     && i.metadataStatus !== "failed" && !titleTried.has(i.id));
+  targets.forEach(i => titleTried.add(i.id)); // 先に印を付けて、同じ件を二重に取りに行かない
   for (const item of targets) {
-    titleTried.add(item.id);
     const title = item.service === "x" ? await fetchXTitle(item.url) : await fetchYoutubeTitle(item.url);
+    if (!navigator.onLine) { titleTried.delete(item.id); continue; }
+    // 取りに行っている間に✏️で名前が付いていたら、上書きしない
+    const latest = allItems.find(i => i.id === item.id);
+    if (!latest || latest.title) continue;
     try {
       await updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id),
         title ? { title: title, metadataStatus: "done" } : { metadataStatus: "failed" });
@@ -397,10 +427,11 @@ async function fillYoutubeTitles() {
 // 登録なしで1日25回まで。1件につき1回だけ取りに行く
 const imageTried = new Set();
 async function fillPageImages() {
+  if (!navigator.onLine) return;
   const targets = allItems.filter(i => (i.service === "note" || i.service === "other")
     && !i.thumbnailUrl && !i.imageStatus && !imageTried.has(i.id));
+  targets.forEach(i => imageTried.add(i.id)); // 先に印を付けて、1日25回の枠をむだにしない
   for (const item of targets) {
-    imageTried.add(item.id);
     let data = null;
     try {
       const ctrl = new AbortController();
@@ -409,12 +440,14 @@ async function fillPageImages() {
       clearTimeout(timer);
       if (res.status === 429) return; // 今日の回数を使い切った → 明日また
       if (res.ok) data = (await res.json()).data;
-    } catch (e) { console.warn(e); continue; } // 通信の失敗は、次に開いたときにもう一度
+    } catch (e) { console.warn(e); imageTried.delete(item.id); continue; } // 通信の失敗は、次に開いたときにもう一度
     const update = {};
     const img = data && data.image && data.image.url;
     if (img && /^https:\/\//.test(img)) { update.thumbnailUrl = img; update.imageStatus = "done"; }
     else update.imageStatus = "failed";
-    if (!item.title && data && data.title) update.title = String(data.title).slice(0, 100);
+    const latest = allItems.find(i => i.id === item.id);
+    if (!latest) continue;
+    if (!latest.title && data && data.title) update.title = String(data.title).slice(0, 100);
     try {
       await updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id), update);
     } catch (e) { console.warn(e); }
@@ -516,33 +549,32 @@ function openTagSheet(item) {
   const cancel = document.createElement("button");
   cancel.className = "secondary";
   cancel.textContent = "キャンセル";
-  cancel.onclick = () => bg.remove();
+  const close = () => { bg.remove(); document.documentElement.style.overflow = ""; };
+  cancel.onclick = close;
   const save = document.createElement("button");
   save.textContent = "保存";
   save.style.background = "#3a3a3c";
-  save.onclick = async () => {
+  save.onclick = () => {
     if (input.value.trim()) addTag();
-    try {
-      await updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id),
-                      { tags: [...selected].sort((a, b) => a.localeCompare(b, "ja")) });
-      bg.remove();
-    } catch (e) {
-      console.error(e);
-      alert("タグを保存できませんでした。");
-    }
+    close(); // 返事を待たずに閉じる（電波が弱くても固まらない）
+    updateDoc(doc(db, "users", currentUser.uid, "bookmarks", item.id),
+              { tags: [...selected].sort((a, b) => a.localeCompare(b, "ja")) })
+      .catch(e => { console.error(e); alert("タグを保存できませんでした。"); });
   };
   btns.append(cancel, save);
 
   sheet.append(h, chips, row, btns);
   bg.appendChild(sheet);
-  bg.onclick = e => { if (e.target === bg) bg.remove(); };
+  bg.onclick = e => { if (e.target === bg) close(); };
+  input.onfocus = () => setTimeout(() => input.scrollIntoView({ block: "center" }), 300);
+  document.documentElement.style.overflow = "hidden"; // 後ろの一覧が動かないようにする
   document.body.appendChild(bg);
 }
 
 function getYoutubeId(url) {
   try {
     const u = new URL(url);
-    const host = u.hostname.replace(/^www\./, "");
+    const host = u.hostname.replace(/^(www|m|mobile)\./, "");
     if (host === "youtu.be") return u.pathname.slice(1) || null;
     if (host === "youtube.com") {
       if (u.searchParams.get("v")) return u.searchParams.get("v");
@@ -576,7 +608,10 @@ function renderList() {
   if (items.length === 0) {
     const p = document.createElement("p");
     p.textContent = currentTag === NO_TAG ? "タグなしのブックマークはありません。"
-      : currentTag ? "このタグのブックマークはありません。" : "まだ保存されていません。";
+      : currentTag ? "このタグのブックマークはありません。"
+      : showArchive ? "アーカイブはありません。"
+      : currentService !== "all" ? "このサービスのブックマークはありません。"
+      : "まだ保存されていません。";
     list.appendChild(p);
     return;
   }
@@ -634,6 +669,7 @@ function renderList() {
     rename.className = "secondary";
     rename.textContent = "✏️";
     rename.title = "名前を付ける";
+    rename.setAttribute("aria-label", "名前を付ける");
     rename.onclick = async () => {
       const name = prompt("この投稿の名前を入力してください", item.title || "");
       if (name === null) return;
@@ -653,6 +689,7 @@ function renderList() {
     tagBtn.className = "secondary";
     tagBtn.textContent = "🏷️";
     tagBtn.title = "タグを付ける";
+    tagBtn.setAttribute("aria-label", "タグを付ける");
     tagBtn.onclick = () => openTagSheet(item);
     actions.appendChild(tagBtn);
 
@@ -670,6 +707,7 @@ function renderList() {
       arc.className = "secondary";
       arc.textContent = "📦";
       arc.title = "アーカイブする";
+      arc.setAttribute("aria-label", "アーカイブする");
       arc.onclick = () => setArchive(true);
       actions.appendChild(arc);
     } else {
