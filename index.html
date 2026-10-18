@@ -33,9 +33,11 @@
   /* タブ: iPhoneは4つずつ2行、iPadは1行(横スクロールなし) */
   .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
   @media (min-width: 600px) { .tabs { grid-template-columns: repeat(7, 1fr); } }
-  .tabs button { background: #fff; color: #007aff; white-space: nowrap; min-width: 0;
-                 padding: 8px 2px; font-size: 14px; overflow: hidden; text-overflow: ellipsis; }
-  .tabs button.active { background: #007aff; color: #fff; }
+  .tabs button { background: #fff; color: #3a3a3c; white-space: nowrap; min-width: 0;
+                 padding: 8px 2px; font-size: 14px; overflow: hidden; text-overflow: ellipsis;
+                 border: 2px solid transparent; display: flex; align-items: center; justify-content: center; }
+  .tabs button.active { background: #e5e5ea; color: #1c1c1e; border-color: #3a3a3c; font-weight: bold; }
+  .tabs img { width: 24px; height: 24px; display: block; }
   .card { background: #fff; border-radius: 16px; padding: 14px; margin-bottom: 12px; }
   .card a { color: inherit; text-decoration: none; display: block; }
   .service { font-size: 13px; font-weight: bold; color: #007aff; }
@@ -91,7 +93,7 @@
 </head>
 <body>
 <header>
-  <h1>Bookmark <span id="ver" style="font-size:13px;color:#8e8e93;font-weight:normal">v0.26</span></h1>
+  <h1>Bookmark <span id="ver" style="font-size:13px;color:#8e8e93;font-weight:normal">v0.27</span></h1>
   <button id="authBtn" class="secondary">ログイン</button>
 </header>
 
@@ -141,7 +143,7 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
-const VERSION = "v0.26";
+const VERSION = "v0.27";
 
 const SERVICES = [
   { key: "all", label: "すべて" },
@@ -152,6 +154,10 @@ const SERVICES = [
   { key: "other", label: "その他" },
   { key: "archive", label: "アーカイブ" }
 ];
+// タブに出すロゴ（各サービスのサイトのアイコンを読み込む）
+const SERVICE_LOGO = {
+  instagram: "instagram.com", x: "x.com", youtube: "youtube.com", note: "note.com"
+};
 const SERVICE_LABEL = Object.fromEntries(SERVICES.map(s => [s.key, s.label]));
 let currentService = "all";
 let currentTag = "";
@@ -466,7 +472,16 @@ function renderTabs() {
   tabs.innerHTML = "";
   SERVICES.forEach(s => {
     const b = document.createElement("button");
-    b.textContent = s.label;
+    b.setAttribute("aria-label", s.label);
+    if (SERVICE_LOGO[s.key]) {
+      const img = document.createElement("img");
+      img.alt = s.label;
+      img.src = "https://www.google.com/s2/favicons?sz=64&domain=" + SERVICE_LOGO[s.key];
+      img.onerror = () => { b.textContent = s.label; }; // 読み込めなければ文字で出す
+      b.appendChild(img);
+    } else {
+      b.textContent = s.label;
+    }
     b.className = s.key === currentService ? "active" : "";
     b.onclick = () => { currentService = s.key; renderTabs(); renderList(); };
     tabs.appendChild(b);
